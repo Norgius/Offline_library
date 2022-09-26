@@ -1,5 +1,7 @@
 from pathlib import Path
 import os
+from urllib.parse import urljoin, urlsplit
+from pprint import pprint
 
 import requests
 import requests.exceptions
@@ -7,7 +9,6 @@ from bs4 import BeautifulSoup
 from pathvalidate import sanitize_filename
 
 
-Path('books').mkdir(parents=True, exist_ok=True)
 ENCODING = 'UTF-8'
 
 
@@ -16,18 +17,46 @@ def check_for_redirect(response):
         raise requests.exceptions.HTTPError('Неверный тип данных')
 
 
-def get_title_and_author(url):
+def parse_book_page(url):
     response = requests.get(url)
     response.raise_for_status()
+    book_data = {}
     soup = BeautifulSoup(response.text, 'lxml')
-    title_tag = soup.find('body').find('h1')
-    title, author = title_tag.text.split('::')
-    return (title, author)
+    title_and_author = soup.find('body').find('h1')
+    title, author = title_and_author.text.split('::')
+    book_data['title'] = sanitize_filename(title).strip()
+    book_data['author'] = sanitize_filename(author).strip()
+    comments_blog = soup.find_all(class_='texts')
+    comments = ''
+    for comment in comments_blog:
+        comments += comment.span.string + '\n'
+    book_data['comments'] = comments
+    img_src = soup.find(class_='bookimage').find('img')['src']
+    pprint(book_data)
+    return (title, author, img_src)
 
 
-def download_txt(url, params, filename, folder='books'):
-    response = requests.get(url, params=params)
+def get_file_extension(url):
+    parsed_url = urlsplit(url)
+    filename = os.path.split(parsed_url.path)[1]
+    return os.path.splitext(filename)[1]
+
+
+def download_image(img_link, id, folder='images'):
+    Path(folder).mkdir(parents=True, exist_ok=True)
+    response = requests.get(img_link)
     response.raise_for_status()
+    if img_link.endswith('nopic.gif'):
+        img_name = 'nopic.gif'
+    else:
+        extension = get_file_extension(img_link)
+        img_name = f'{id}.{extension}'
+    with open(os.path.join(folder, img_name), 'wb') as file:
+        file.write(response.content)
+
+
+def save_text(response, filename, folder='books'):
+    Path(folder).mkdir(parents=True, exist_ok=True)
     filename = sanitize_filename(filename).strip()
     with open(os.path.join(folder, f'{filename}.txt'),
               'w', encoding=ENCODING) as file:
@@ -44,8 +73,10 @@ def main():
             check_for_redirect(response)
         except requests.exceptions.HTTPError:
             continue
-        title, author = get_title_and_author(f'{url}b{id}')
-        download_txt(f'{url}txt.php', params, f'{id}. {title}')
+        title, author, img_src = parse_book_page(f'{url}b{id}')
+        save_text(response, f'{id}. {title}')
+        img_link = urljoin(url, img_src)
+        download_image(img_link, id)
 
 
 if __name__ == '__main__':
