@@ -1,6 +1,7 @@
 from pathlib import Path
 import os
 from urllib.parse import urljoin, urlsplit
+import argparse
 
 import requests
 import requests.exceptions
@@ -67,9 +68,17 @@ def save_text(response, filename, folder='books'):
 
 
 def main():
-    for id in range(1, 11):
-        params = {'id': id}
+    parser = argparse.ArgumentParser(
+        description='Скачивает книги в указанном диапазоне'
+    )
+    parser.add_argument('start_id', default=1, type=int,
+                        help='Начало диапазона')
+    parser.add_argument('end_id', default=15, type=int,
+                        help='Конец диапазона')
+    args = parser.parse_args()
+    for id in range(args.start_id, args.end_id):
         url = 'https://tululu.org/'
+        params = {'id': id}
         try:
             response = requests.get(url=f'{url}txt.php', params=params)
             response.raise_for_status()
@@ -82,6 +91,9 @@ def main():
         save_text(response, filename=f'{id}. {title}')
         img_link = urljoin(url, img_src)
         download_image(img_link, id)
+
+        print(f'Название: {book_data.get("Название")}')
+        print(f'Автор: {book_data.get("Автор")}\n')
 
 
 if __name__ == '__main__':
