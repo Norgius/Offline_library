@@ -24,13 +24,18 @@ def parse_book_page(url):
     soup = BeautifulSoup(response.text, 'lxml')
     title_and_author = soup.find('body').find('h1')
     title, author = title_and_author.text.split('::')
-    book_data['title'] = sanitize_filename(title).strip()
-    book_data['author'] = sanitize_filename(author).strip()
+    book_data['Название'] = sanitize_filename(title).strip()
+    book_data['Автор'] = sanitize_filename(author).strip()
     comments_blog = soup.find_all(class_='texts')
     comments = ''
     for comment in comments_blog:
-        comments += comment.span.string + '\n'
-    book_data['comments'] = comments
+        comments += f'{comment.span.string}\n'
+    book_data['Комментарии'] = comments
+    book_genres = soup.find('span', class_='d_book').find_all('a')
+    genres = []
+    for genre in book_genres:
+        genres.append(genre.text)
+    book_data['Жанры'] = genres
     img_src = soup.find(class_='bookimage').find('img')['src']
     pprint(book_data)
     return (title, author, img_src)
