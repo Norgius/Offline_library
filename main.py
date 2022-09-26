@@ -1,7 +1,6 @@
 from pathlib import Path
 import os
 from urllib.parse import urljoin, urlsplit
-from pprint import pprint
 
 import requests
 import requests.exceptions
@@ -17,28 +16,27 @@ def check_for_redirect(response):
         raise requests.exceptions.HTTPError('Неверный тип данных')
 
 
-def parse_book_page(url):
-    response = requests.get(url)
-    response.raise_for_status()
+def parse_book_page(html_book_page):
     book_data = {}
-    soup = BeautifulSoup(response.text, 'lxml')
+    soup = BeautifulSoup(html_book_page.text, 'lxml')
     title_and_author = soup.find('body').find('h1')
     title, author = title_and_author.text.split('::')
-    book_data['Название'] = sanitize_filename(title).strip()
-    book_data['Автор'] = sanitize_filename(author).strip()
+    title = sanitize_filename(title).strip()
+    author = sanitize_filename(author).strip()
     comments_blog = soup.find_all(class_='texts')
-    comments = ''
+    comments = []
     for comment in comments_blog:
-        comments += f'{comment.span.string}\n'
-    book_data['Комментарии'] = comments
+        comments.append(f'{comment.span.string}')
     book_genres = soup.find('span', class_='d_book').find_all('a')
     genres = []
     for genre in book_genres:
         genres.append(genre.text)
-    book_data['Жанры'] = genres
     img_src = soup.find(class_='bookimage').find('img')['src']
-    pprint(book_data)
-    return (title, author, img_src)
+    book_data['Название'] = title
+    book_data['Автор'] = author
+    book_data['Комментарии'] = comments
+    book_data['Жанры'] = genres
+    return (title, img_src, book_data)
 
 
 def get_file_extension(url):
@@ -73,13 +71,15 @@ def main():
         params = {'id': id}
         url = 'https://tululu.org/'
         try:
-            response = requests.get(f'{url}txt.php', params=params)
+            response = requests.get(url=f'{url}txt.php', params=params)
             response.raise_for_status()
             check_for_redirect(response)
         except requests.exceptions.HTTPError:
             continue
-        title, author, img_src = parse_book_page(f'{url}b{id}')
-        save_text(response, f'{id}. {title}')
+        html_book_page = requests.get(url=f'{url}b{id}')
+        html_book_page.raise_for_status()
+        title, img_src, book_data = parse_book_page(html_book_page)
+        save_text(response, filename=f'{id}. {title}')
         img_link = urljoin(url, img_src)
         download_image(img_link, id)
 
