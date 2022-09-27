@@ -1,7 +1,7 @@
 from pathlib import Path
-import os
 from urllib.parse import urljoin, urlsplit
 import argparse
+import os
 
 import requests
 import requests.exceptions
@@ -18,26 +18,22 @@ def check_for_redirect(response):
 
 
 def parse_book_page(html_book_page):
-    book_data = {}
+    book_data = {'title': None, 'author': None, 'comments': [],
+                 'genres': [], 'img_src': None}
     soup = BeautifulSoup(html_book_page.text, 'lxml')
     title_and_author = soup.find('body').find('h1')
     title, author = title_and_author.text.split('::')
-    title = sanitize_filename(title).strip()
-    author = sanitize_filename(author).strip()
+    book_data['title'] = sanitize_filename(title).strip()
+    book_data['author'] = sanitize_filename(author).strip()
     comments_blog = soup.find_all(class_='texts')
-    comments = []
     for comment in comments_blog:
-        comments.append(f'{comment.span.string}')
+        book_data['comments'].append(f'{comment.span.string}')
     book_genres = soup.find('span', class_='d_book').find_all('a')
-    genres = []
     for genre in book_genres:
-        genres.append(genre.text)
+        book_data['genres'].append(genre.text)
     img_src = soup.find(class_='bookimage').find('img')['src']
-    book_data['Название'] = title
-    book_data['Автор'] = author
-    book_data['Комментарии'] = comments
-    book_data['Жанры'] = genres
-    return (title, img_src, book_data)
+    book_data['img_src'] = img_src
+    return book_data
 
 
 def get_file_extension(url):
@@ -71,9 +67,9 @@ def main():
     parser = argparse.ArgumentParser(
         description='Скачивает книги в указанном диапазоне'
     )
-    parser.add_argument('start_id', default=1, type=int,
+    parser.add_argument('start_id', type=int,
                         help='Начало диапазона')
-    parser.add_argument('end_id', default=15, type=int,
+    parser.add_argument('end_id', type=int,
                         help='Конец диапазона')
     args = parser.parse_args()
     for id in range(args.start_id, args.end_id):
@@ -87,13 +83,13 @@ def main():
             continue
         html_book_page = requests.get(url=f'{url}b{id}')
         html_book_page.raise_for_status()
-        title, img_src, book_data = parse_book_page(html_book_page)
-        save_text(response, filename=f'{id}. {title}')
-        img_link = urljoin(url, img_src)
+        book_data = parse_book_page(html_book_page)
+        save_text(response, filename=f'{id}. {book_data.get("title")}')
+        img_link = urljoin(url, book_data.get('img_src'))
         download_image(img_link, id)
 
-        print(f'Название: {book_data.get("Название")}')
-        print(f'Автор: {book_data.get("Автор")}\n')
+        print(f'Название: {book_data.get("title")}')
+        print(f'Автор: {book_data.get("author")}\n')
 
 
 if __name__ == '__main__':
