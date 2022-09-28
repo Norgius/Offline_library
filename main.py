@@ -24,10 +24,10 @@ def set_up_logging():
     return logger
 
 
-def check_for_redirect(response):
-    if response.history:
+def check_for_redirect(response, url):
+    if response.url == url:
         raise requests.exceptions.HTTPError(
-            f'Произошёл редирект {response.history}'
+            f'Произошёл редирект на страницу {response.url}'
         )
 
 
@@ -94,13 +94,14 @@ def main():
         try:
             response = requests.get(url=f'{url}txt.php', params=params)
             response.raise_for_status()
-            check_for_redirect(response)
+            check_for_redirect(response, url)
+            html_book_page = requests.get(url=f'{url}b{book_id}')
+            html_book_page.raise_for_status()
+            check_for_redirect(html_book_page, url)
         except requests.exceptions.HTTPError as http_er:
             logger.info(f'Невозможно загрузить книгу по данному '
                         f'book_id={book_id}\n{http_er}\n')
             continue
-        html_book_page = requests.get(url=f'{url}b{book_id}')
-        html_book_page.raise_for_status()
         book = parse_book_page(html_book_page)
         save_text(response, filename=f'{book_id}. {book.get("title")}')
         img_link = urljoin(url, book.get('img_src'))
