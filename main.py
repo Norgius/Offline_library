@@ -100,11 +100,11 @@ def main():
             check_for_redirect(html_book_page, url)
         except requests.exceptions.HTTPError as http_er:
             logger.info(f'Невозможно загрузить книгу по данному '
-                        f'book_id={book_id}\n{http_er}\n')
+                        f'book_id = {book_id}\n{http_er}\n')
             continue
         book = parse_book_page(html_book_page)
         save_text(response, filename=f'{book_id}. {book.get("title")}')
-        img_link = urljoin(url, book.get('img_src'))
+        img_link = urljoin(html_book_page.url, book.get('img_src'))
         download_image(img_link, book_id)
 
         print(f'Название: {book.get("title")}')
