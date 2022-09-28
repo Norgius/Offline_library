@@ -2,6 +2,8 @@ from pathlib import Path
 from urllib.parse import urljoin, urlsplit
 import argparse
 import os
+import logging
+from logging.handlers import RotatingFileHandler
 
 import requests
 import requests.exceptions
@@ -12,28 +14,41 @@ from pathvalidate import sanitize_filename
 ENCODING = 'UTF-8'
 
 
+def set_up_logging():
+    logging.basicConfig(format='%(name)s - %(levelname)s - %(message)s')
+    logging.basicConfig(filename='app.log', filemode='w', level=logging.INFO)
+    logger = logging.getLogger('Обработчик соединений')
+    logger.setLevel(logging.INFO)
+    handler = RotatingFileHandler('app.log', maxBytes=3000, backupCount=2)
+    logger.addHandler(handler)
+    return logger
+
+
 def check_for_redirect(response):
     if response.history:
-        raise requests.exceptions.HTTPError('Неверный тип данных')
+        raise requests.exceptions.HTTPError(
+            f'Произошёл редирект {response.history}'
+        )
 
 
 def parse_book_page(html_book_page):
-    book_data = {'title': None, 'author': None, 'comments': [],
-                 'genres': [], 'img_src': None}
     soup = BeautifulSoup(html_book_page.text, 'lxml')
     title_and_author = soup.find('body').find('h1')
     title, author = title_and_author.text.split('::')
-    book_data['title'] = sanitize_filename(title).strip()
-    book_data['author'] = sanitize_filename(author).strip()
+    title = sanitize_filename(title).strip()
+    author = sanitize_filename(author).strip()
     comments_blog = soup.find_all(class_='texts')
+    comments = []
     for comment in comments_blog:
-        book_data['comments'].append(f'{comment.span.string}')
+        comments.append(f'{comment.span.string}')
     book_genres = soup.find('span', class_='d_book').find_all('a')
+    genres = []
     for genre in book_genres:
-        book_data['genres'].append(genre.text)
+        genres.append(genre.text)
     img_src = soup.find(class_='bookimage').find('img')['src']
-    book_data['img_src'] = img_src
-    return book_data
+    book = {'title': title, 'author': author, 'comments': comments,
+            'genres': genres, 'img_src': img_src}
+    return book
 
 
 def get_file_extension(url):
@@ -42,7 +57,7 @@ def get_file_extension(url):
     return os.path.splitext(filename)[1]
 
 
-def download_image(img_link, id, folder='images'):
+def download_image(img_link, book_id, folder='images'):
     Path(folder).mkdir(parents=True, exist_ok=True)
     response = requests.get(img_link)
     response.raise_for_status()
@@ -50,7 +65,7 @@ def download_image(img_link, id, folder='images'):
         img_name = 'nopic.gif'
     else:
         extension = get_file_extension(img_link)
-        img_name = f'{id}.{extension}'
+        img_name = f'{book_id}.{extension}'
     with open(os.path.join(folder, img_name), 'wb') as file:
         file.write(response.content)
 
@@ -64,6 +79,7 @@ def save_text(response, filename, folder='books'):
 
 
 def main():
+    logger = set_up_logging()
     parser = argparse.ArgumentParser(
         description='Скачивает книги в указанном диапазоне'
     )
@@ -72,24 +88,26 @@ def main():
     parser.add_argument('end_id', type=int,
                         help='Конец диапазона')
     args = parser.parse_args()
-    for id in range(args.start_id, args.end_id):
+    for book_id in range(args.start_id, args.end_id):
         url = 'https://tululu.org/'
-        params = {'id': id}
+        params = {'id': book_id}
         try:
             response = requests.get(url=f'{url}txt.php', params=params)
             response.raise_for_status()
             check_for_redirect(response)
-        except requests.exceptions.HTTPError:
+        except requests.exceptions.HTTPError as http_er:
+            logger.info(f'Невозможно загрузить книгу по данному '
+                        f'book_id={book_id}\n{http_er}\n')
             continue
-        html_book_page = requests.get(url=f'{url}b{id}')
+        html_book_page = requests.get(url=f'{url}b{book_id}')
         html_book_page.raise_for_status()
-        book_data = parse_book_page(html_book_page)
-        save_text(response, filename=f'{id}. {book_data.get("title")}')
-        img_link = urljoin(url, book_data.get('img_src'))
-        download_image(img_link, id)
+        book = parse_book_page(html_book_page)
+        save_text(response, filename=f'{book_id}. {book.get("title")}')
+        img_link = urljoin(url, book.get('img_src'))
+        download_image(img_link, book_id)
 
-        print(f'Название: {book_data.get("title")}')
-        print(f'Автор: {book_data.get("author")}\n')
+        print(f'Название: {book.get("title")}')
+        print(f'Автор: {book.get("author")}\n')
 
 
 if __name__ == '__main__':
