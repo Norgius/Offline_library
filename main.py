@@ -1,4 +1,5 @@
 from pathlib import Path
+import sys
 from urllib.parse import urljoin, urlsplit
 import argparse
 import os
@@ -15,8 +16,9 @@ ENCODING = 'UTF-8'
 
 
 def set_up_logging():
-    logging.basicConfig(format='%(name)s - %(levelname)s - %(message)s')
-    logging.basicConfig(filename='app.log', filemode='w', level=logging.INFO)
+    logging.basicConfig(filename='app.log', filemode='w', level=logging.INFO,
+                        format='%(name)s - %(levelname)s '
+                               '- %(asctime)s - %(message)s')
     logger = logging.getLogger('Обработчик соединений')
     logger.setLevel(logging.INFO)
     handler = RotatingFileHandler('app.log', maxBytes=3000, backupCount=2)
@@ -25,9 +27,14 @@ def set_up_logging():
 
 
 def check_for_redirect(response, url):
-    if response.url == url:
+    if response.url == url and response:
         raise requests.exceptions.HTTPError(
-            f'Произошёл редирект на страницу {response.url}'
+            f'Cо страницы - {response.history[0].url}\n'
+            f'произошёл редирект на страницу - {response.url}'
+        )
+    if response.status_code == 404:
+        raise requests.exceptions.HTTPError(
+            f'Сервер не нашёл такую страницу - {response.url}'
         )
 
 
@@ -96,11 +103,11 @@ def main():
             response.raise_for_status()
             check_for_redirect(response, url)
             html_book_page = requests.get(url=f'{url}b{book_id}')
-            html_book_page.raise_for_status()
             check_for_redirect(html_book_page, url)
         except requests.exceptions.HTTPError as http_er:
             logger.info(f'Невозможно загрузить книгу по данному '
                         f'book_id = {book_id}\n{http_er}\n')
+            sys.stderr.write(f'{http_er}\n\n')
             continue
         book = parse_book_page(html_book_page)
         save_text(response, filename=f'{book_id}. {book.get("title")}')
