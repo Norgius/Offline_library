@@ -27,7 +27,7 @@ def set_up_logging():
 
 
 def check_for_redirect(response, url):
-    if response.url == url and response:
+    if response.url == url and response.history:
         raise requests.exceptions.HTTPError(
             f'Cо страницы - {response.history[0].url}\n'
             f'произошёл редирект на страницу - {response.url}'
