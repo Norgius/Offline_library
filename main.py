@@ -31,13 +31,9 @@ def parse_book_page(html_book_page):
     title = sanitize_filename(title).strip()
     author = sanitize_filename(author).strip()
     comments_blog = soup.find_all(class_='texts')
-    comments = []
-    for comment in comments_blog:
-        comments.append(f'{comment.span.string}')
+    comments = [comment.span.string for comment in comments_blog]
     book_genres = soup.find('span', class_='d_book').find_all('a')
-    genres = []
-    for genre in book_genres:
-        genres.append(genre.text)
+    genres = [genre.text for genre in book_genres]
     img_src = soup.find(class_='bookimage').find('img')['src']
     book = {'title': title, 'author': author, 'comments': comments,
             'genres': genres, 'img_src': img_src}
@@ -94,6 +90,7 @@ def main():
             response.raise_for_status()
             check_for_redirect(response)
             html_book_page = requests.get(url=f'{url}b{book_id}/')
+            html_book_page.raise_for_status()
             check_for_redirect(html_book_page)
         except requests.exceptions.HTTPError as http_er:
             logger.info(f'Невозможно загрузить книгу по данному '
