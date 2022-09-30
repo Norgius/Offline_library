@@ -55,15 +55,16 @@ def download_image(img_link, book_id, folder='images'):
     else:
         extension = get_file_extension(img_link)
         img_name = f'{book_id}.{extension}'
-    with open(os.path.join(folder, img_name), 'wb') as file:
+    file_path = os.path.join(folder, img_name)
+    with open(file_path, 'wb') as file:
         file.write(response.content)
 
 
 def save_text(response, filename, folder='books'):
     Path(folder).mkdir(parents=True, exist_ok=True)
     filename = sanitize_filename(filename).strip()
-    with open(os.path.join(folder, f'{filename}.txt'),
-              'w', encoding=ENCODING) as file:
+    file_path = os.path.join(folder, f'{filename}.txt')
+    with open(file_path, 'w', encoding=ENCODING) as file:
         file.write(response.text)
 
 
