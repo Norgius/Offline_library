@@ -11,30 +11,16 @@ import requests.exceptions
 from bs4 import BeautifulSoup
 from pathvalidate import sanitize_filename
 
-
 ENCODING = 'UTF-8'
 
-
-def set_up_logging():
-    logging.basicConfig(filename='app.log', filemode='w', level=logging.INFO,
-                        format='%(name)s - %(levelname)s '
-                               '- %(asctime)s - %(message)s')
-    logger = logging.getLogger('Обработчик соединений')
-    logger.setLevel(logging.INFO)
-    handler = RotatingFileHandler('app.log', maxBytes=3000, backupCount=2)
-    logger.addHandler(handler)
-    return logger
+logger = logging.getLogger(__file__)
 
 
-def check_for_redirect(response, url):
-    if response.url == url and response.history:
+def check_for_redirect(response):
+    if response.history:
         raise requests.exceptions.HTTPError(
             f'Cо страницы - {response.history[0].url}\n'
             f'произошёл редирект на страницу - {response.url}'
-        )
-    if response.status_code == 404:
-        raise requests.exceptions.HTTPError(
-            f'Сервер не нашёл такую страницу - {response.url}'
         )
 
 
@@ -86,7 +72,12 @@ def save_text(response, filename, folder='books'):
 
 
 def main():
-    logger = set_up_logging()
+    logging.basicConfig(filename='app.log', filemode='w', level=logging.INFO,
+                        format='%(name)s - %(levelname)s '
+                               '- %(asctime)s - %(message)s')
+    logger.setLevel(logging.INFO)
+    handler = RotatingFileHandler('app.log', maxBytes=3000, backupCount=2)
+    logger.addHandler(handler)
     parser = argparse.ArgumentParser(
         description='Скачивает книги в указанном диапазоне'
     )
@@ -101,9 +92,9 @@ def main():
         try:
             response = requests.get(url=f'{url}txt.php', params=params)
             response.raise_for_status()
-            check_for_redirect(response, url)
-            html_book_page = requests.get(url=f'{url}b{book_id}')
-            check_for_redirect(html_book_page, url)
+            check_for_redirect(response)
+            html_book_page = requests.get(url=f'{url}b{book_id}/')
+            check_for_redirect(html_book_page)
         except requests.exceptions.HTTPError as http_er:
             logger.info(f'Невозможно загрузить книгу по данному '
                         f'book_id = {book_id}\n{http_er}\n')
