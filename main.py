@@ -5,6 +5,7 @@ import argparse
 import os
 import logging
 from logging.handlers import RotatingFileHandler
+from time import sleep
 
 import requests
 import requests.exceptions
@@ -87,16 +88,22 @@ def main():
         url = 'https://tululu.org/'
         params = {'id': book_id}
         try:
-            response = requests.get(url=f'{url}txt.php', params=params)
+            response = requests.get(url=f'{url}txt.php',
+                                    params=params, timeout=10)
             response.raise_for_status()
             check_for_redirect(response)
-            html_book_page = requests.get(url=f'{url}b{book_id}/')
+            html_book_page = requests.get(url=f'{url}b{book_id}/', timeout=10)
             html_book_page.raise_for_status()
             check_for_redirect(html_book_page)
         except requests.exceptions.HTTPError as http_er:
             logger.info(f'Невозможно загрузить книгу по данному '
                         f'book_id = {book_id}\n{http_er}\n')
             sys.stderr.write(f'{http_er}\n\n')
+            continue
+        except requests.exceptions.ConnectionError as connect_er:
+            logger.info(f'Произошёл сетевой сбой на книге с данным '
+                        f'book_id = {book_id}\n{connect_er}\n')
+            sys.stderr.write(f'{connect_er}\n\n')
             continue
         book = parse_book_page(html_book_page)
         save_text(response, filename=f'{book_id}. {book.get("title")}')
