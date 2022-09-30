@@ -5,7 +5,6 @@ import argparse
 import os
 import logging
 from logging.handlers import RotatingFileHandler
-from time import sleep
 
 import requests
 import requests.exceptions
@@ -69,22 +68,8 @@ def save_text(response, filename, folder='books'):
         file.write(response.text)
 
 
-def main():
-    logging.basicConfig(filename='app.log', filemode='w', level=logging.INFO,
-                        format='%(name)s - %(levelname)s '
-                               '- %(asctime)s - %(message)s')
-    logger.setLevel(logging.INFO)
-    handler = RotatingFileHandler('app.log', maxBytes=3000, backupCount=2)
-    logger.addHandler(handler)
-    parser = argparse.ArgumentParser(
-        description='Скачивает книги в указанном диапазоне'
-    )
-    parser.add_argument('start_id', type=int,
-                        help='Начало диапазона')
-    parser.add_argument('end_id', type=int,
-                        help='Конец диапазона')
-    args = parser.parse_args()
-    for book_id in range(args.start_id, args.end_id):
+def work_with_books(start_id, end_id):
+    for book_id in range(start_id, end_id):
         url = 'https://tululu.org/'
         params = {'id': book_id}
         try:
@@ -101,8 +86,8 @@ def main():
             sys.stderr.write(f'{http_er}\n\n')
             continue
         except requests.exceptions.ConnectionError as connect_er:
-            logger.info(f'Произошёл сетевой сбой на книге с данным '
-                        f'book_id = {book_id}\n{connect_er}\n')
+            logger.warning(f'Произошёл сетевой сбой на книге с данным '
+                           f'book_id = {book_id}\n{connect_er}\n')
             sys.stderr.write(f'{connect_er}\n\n')
             continue
         book = parse_book_page(html_book_page)
@@ -112,6 +97,24 @@ def main():
 
         print(f'Название: {book.get("title")}')
         print(f'Автор: {book.get("author")}\n')
+
+
+def main():
+    logging.basicConfig(filename='app.log', filemode='w', level=logging.INFO,
+                        format='%(name)s - %(levelname)s '
+                               '- %(asctime)s - %(message)s')
+    logger.setLevel(logging.INFO)
+    handler = RotatingFileHandler('app.log', maxBytes=3000, backupCount=2)
+    logger.addHandler(handler)
+    parser = argparse.ArgumentParser(
+        description='Скачивает книги в указанном диапазоне'
+    )
+    parser.add_argument('start_id', type=int,
+                        help='Начало диапазона')
+    parser.add_argument('end_id', type=int,
+                        help='Конец диапазона')
+    args = parser.parse_args()
+    work_with_books(args.start_id, args.end_id)
 
 
 if __name__ == '__main__':
