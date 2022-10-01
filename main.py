@@ -1,9 +1,10 @@
-from pathlib import Path
-import sys
-from urllib.parse import urljoin, urlsplit
-import argparse
 import os
+import sys
+import argparse
 import logging
+from time import sleep
+from pathlib import Path
+from urllib.parse import urljoin, urlsplit
 from logging.handlers import RotatingFileHandler
 
 import requests
@@ -48,7 +49,7 @@ def get_file_extension(url):
 
 def download_image(img_link, book_id, folder='images'):
     Path(folder).mkdir(parents=True, exist_ok=True)
-    response = requests.get(img_link)
+    response = requests.get(img_link, timeout=10)
     response.raise_for_status()
     if img_link.endswith('nopic.gif'):
         img_name = 'nopic.gif'
@@ -68,7 +69,7 @@ def save_text(response, filename, folder='books'):
         file.write(response.text)
 
 
-def work_with_books(start_id, end_id):
+def get_books(start_id, end_id):
     for book_id in range(start_id, end_id):
         url = 'https://tululu.org/'
         params = {'id': book_id}
@@ -80,6 +81,10 @@ def work_with_books(start_id, end_id):
             html_book_page = requests.get(url=f'{url}b{book_id}/', timeout=10)
             html_book_page.raise_for_status()
             check_for_redirect(html_book_page)
+            book = parse_book_page(html_book_page)
+            save_text(response, filename=f'{book_id}. {book.get("title")}')
+            img_link = urljoin(html_book_page.url, book.get('img_src'))
+            download_image(img_link, book_id)
         except requests.exceptions.HTTPError as http_er:
             logger.info(f'Невозможно загрузить книгу по данному '
                         f'book_id = {book_id}\n{http_er}\n')
@@ -89,12 +94,8 @@ def work_with_books(start_id, end_id):
             logger.warning(f'Произошёл сетевой сбой на книге с данным '
                            f'book_id = {book_id}\n{connect_er}\n')
             sys.stderr.write(f'{connect_er}\n\n')
+            sleep(15)
             continue
-        book = parse_book_page(html_book_page)
-        save_text(response, filename=f'{book_id}. {book.get("title")}')
-        img_link = urljoin(html_book_page.url, book.get('img_src'))
-        download_image(img_link, book_id)
-
         print(f'Название: {book.get("title")}')
         print(f'Автор: {book.get("author")}\n')
 
@@ -114,7 +115,7 @@ def main():
     parser.add_argument('end_id', type=int,
                         help='Конец диапазона')
     args = parser.parse_args()
-    work_with_books(args.start_id, args.end_id)
+    get_books(args.start_id, args.end_id)
 
 
 if __name__ == '__main__':
