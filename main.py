@@ -14,7 +14,6 @@ from bs4 import BeautifulSoup
 from pathvalidate import sanitize_filename
 
 ENCODING = 'UTF-8'
-
 logger = logging.getLogger(__file__)
 
 
@@ -28,17 +27,18 @@ def check_for_redirect(response):
 
 def parse_book_page(html_book_page):
     soup = BeautifulSoup(html_book_page.text, 'lxml')
-    title_and_author = soup.find('body').find('h1')
+    title_and_author = soup.select_one('body h1')
     title, author = title_and_author.text.split('::')
     title = sanitize_filename(title).strip()
     author = sanitize_filename(author).strip()
-    comments_blog = soup.find_all(class_='texts')
+    comments_blog = soup.select('.texts')
     comments = [comment.span.string for comment in comments_blog]
-    book_genres = soup.find('span', class_='d_book').find_all('a')
+    book_genres = soup.select('span.d_book a')
     genres = [genre.text for genre in book_genres]
-    img_src = soup.find(class_='bookimage').find('img')['src']
+    img_src = soup.select_one('.bookimage img').get('src')
     book = {'title': title, 'author': author, 'comments': comments,
             'genres': genres, 'img_src': img_src}
+    pprint(book)
     return book
 
 
@@ -62,6 +62,7 @@ def download_image(img_link, book_id, folder='images'):
         file.write(response.content)
     return file_path
 
+
 def save_text(response, filename, folder='books'):
     Path(folder).mkdir(parents=True, exist_ok=True)
     filename = sanitize_filename(filename).strip()
@@ -69,6 +70,7 @@ def save_text(response, filename, folder='books'):
     with open(file_path, 'w', encoding=ENCODING) as file:
         file.write(response.text)
     return file_path
+
 
 def get_books(start_id, end_id):
     for book_id in range(start_id, end_id):
@@ -83,7 +85,10 @@ def get_books(start_id, end_id):
             html_book_page.raise_for_status()
             check_for_redirect(html_book_page)
             book = parse_book_page(html_book_page)
-            book_file_path = save_text(response, filename=f'{book_id}. {book.get("title")}')
+            book_file_path = save_text(
+                response,
+                f'{book_id}. {book.get("title")}'
+            )
             img_link = urljoin(html_book_page.url, book.get('img_src'))
             img_file_path = download_image(img_link, book_id)
             book['book_path'] = book_file_path
