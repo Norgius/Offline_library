@@ -1,6 +1,7 @@
 import re
 import sys
 import json
+import argparse
 import logging
 from urllib.parse import urljoin
 from time import sleep
@@ -55,10 +56,10 @@ def get_books(url, book_ids):
     return books
 
 
-def get_book_ids():
+def get_book_ids(start_page, end_page):
     url = 'https://tululu.org/'
     book_ids = []
-    for page_number in range(1, 2):
+    for page_number in range(start_page, end_page):
         book_category = f'l55/{page_number}/'
         book_category_url = urljoin(url, book_category)
         try:
@@ -87,7 +88,15 @@ def get_book_ids():
 
 
 def main():
-    get_book_ids()
+    parser = argparse.ArgumentParser(
+        description='Скачивает книги в указанном диапазоне'
+    )
+    parser.add_argument('--start_page', default=1, type=int,
+                        help='Начало диапазона')
+    parser.add_argument('--end_page', default=702, type=int,
+                        help='Конец диапазона')
+    args = parser.parse_args()
+    get_book_ids(args.start_page, args.end_page)
 
 
 if __name__ == '__main__':
