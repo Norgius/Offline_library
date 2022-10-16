@@ -4,6 +4,7 @@ import sys
 import json
 import argparse
 import logging
+from logging.handlers import RotatingFileHandler
 from urllib.parse import urljoin
 from time import sleep
 
@@ -95,6 +96,15 @@ def get_book_ids(start_page, end_page, skip_imgs,
 
 
 def main():
+    logging.basicConfig(
+        filename='app.log',
+        filemode='w',
+        level=logging.INFO,
+        format='%(name)s - %(levelname)s - %(asctime)s - %(message)s'
+    )
+    logger.setLevel(logging.INFO)
+    handler = RotatingFileHandler('app.log', maxBytes=15000, backupCount=2)
+    logger.addHandler(handler)
     parser = argparse.ArgumentParser(
         description='Скачивает книги в указанном диапазоне'
     )
