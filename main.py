@@ -109,9 +109,12 @@ def get_books(start_id, end_id):
 
 
 def main():
-    logging.basicConfig(filename='app.log', filemode='w', level=logging.INFO,
-                        format='%(name)s - %(levelname)s '
-                               '- %(asctime)s - %(message)s')
+    logging.basicConfig(
+        filename='app.log',
+        filemode='w',
+        level=logging.INFO,
+        format='%(name)s - %(levelname)s - %(asctime)s - %(message)s'
+    )
     logger.setLevel(logging.INFO)
     handler = RotatingFileHandler('app.log', maxBytes=15000, backupCount=2)
     logger.addHandler(handler)

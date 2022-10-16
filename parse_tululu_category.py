@@ -113,7 +113,7 @@ def main():
     parser.add_argument('--end_page', default=702, type=int,
                         help='Конец диапазона')
     parser.add_argument('--skip_imgs', action='store_true', default=False,
-                        help='Нужно ли скачивать картинки?')
+                        help='Нужно ли скачивать обложки книг?')
     parser.add_argument('--skip_txt', action='store_true', default=False,
                         help='Нужно ли скачивать текст книг?')
     parser.add_argument('--json_path', default='', type=str,
