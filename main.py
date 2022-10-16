@@ -1,4 +1,5 @@
 import os
+from pprint import pprint
 import sys
 import argparse
 import logging
@@ -55,11 +56,11 @@ def download_image(img_link, book_id, folder='images'):
         img_name = 'nopic.gif'
     else:
         extension = get_file_extension(img_link)
-        img_name = f'{book_id}.{extension}'
+        img_name = f'{book_id}{extension}'
     file_path = os.path.join(folder, img_name)
     with open(file_path, 'wb') as file:
         file.write(response.content)
-
+    return file_path
 
 def save_text(response, filename, folder='books'):
     Path(folder).mkdir(parents=True, exist_ok=True)
@@ -67,7 +68,7 @@ def save_text(response, filename, folder='books'):
     file_path = os.path.join(folder, f'{filename}.txt')
     with open(file_path, 'w', encoding=ENCODING) as file:
         file.write(response.text)
-
+    return file_path
 
 def get_books(start_id, end_id):
     for book_id in range(start_id, end_id):
@@ -82,9 +83,11 @@ def get_books(start_id, end_id):
             html_book_page.raise_for_status()
             check_for_redirect(html_book_page)
             book = parse_book_page(html_book_page)
-            save_text(response, filename=f'{book_id}. {book.get("title")}')
+            book_file_path = save_text(response, filename=f'{book_id}. {book.get("title")}')
             img_link = urljoin(html_book_page.url, book.get('img_src'))
-            download_image(img_link, book_id)
+            img_file_path = download_image(img_link, book_id)
+            book['book_path'] = book_file_path
+            book['img_src'] = img_file_path
         except requests.exceptions.HTTPError as http_er:
             logger.info(f'Невозможно загрузить книгу по данному '
                         f'book_id = {book_id}\n{http_er}\n')
