@@ -1,3 +1,4 @@
+import os
 import re
 import sys
 import json
@@ -14,13 +15,16 @@ ENCODING = 'UTF-8'
 logger = logging.getLogger(__file__)
 
 
-def create_json_file_with_books(books):
+def create_json_file_with_books(books, dest_folder, json_path):
     books_json = json.dumps(books, ensure_ascii=False)
-    with open('books.json', 'w') as file:
+    if json_path:
+        dest_folder = json_path
+    file_path = os.path.join(dest_folder, 'books.json')
+    with open(file_path, 'w') as file:
         file.write(books_json)
 
 
-def get_books(url, book_ids):
+def get_books(url, book_ids, skip_imgs, skip_txt, dest_folder):
     books = []
     for book_id in book_ids:
         params = {'id': book_id}
@@ -33,14 +37,17 @@ def get_books(url, book_ids):
             html_book_page.raise_for_status()
             check_for_redirect(html_book_page)
             book = parse_book_page(html_book_page)
-            book_file_path = save_text(
-                response,
-                f'{book_id}. {book.get("title")}'
-            )
-            img_link = urljoin(html_book_page.url, book.get('img_src'))
-            img_file_path = download_image(img_link, book_id)
-            book['book_path'] = book_file_path
-            book['img_src'] = img_file_path
+            if not skip_txt:
+                book_file_path = save_text(
+                    response,
+                    f'{book_id}. {book.get("title")}',
+                    dest_folder,
+                )
+                book['book_path'] = book_file_path
+            if not skip_imgs:
+                img_link = urljoin(html_book_page.url, book.get('img_src'))
+                img_file_path = download_image(img_link, book_id, dest_folder)
+                book['img_src'] = img_file_path
             books.append(book)
         except requests.exceptions.HTTPError as http_er:
             logger.info(f'Невозможно загрузить книгу по данному '
@@ -56,7 +63,8 @@ def get_books(url, book_ids):
     return books
 
 
-def get_book_ids(start_page, end_page):
+def get_book_ids(start_page, end_page, skip_imgs,
+                 skip_txt, dest_folder, json_path):
     url = 'https://tululu.org/'
     book_ids = []
     for page_number in range(start_page, end_page):
@@ -69,7 +77,6 @@ def get_book_ids(start_page, end_page):
             logger.warning(f'Невозможно загрузить страницу '
                            f'page_number = {page_number}\n{http_er}\n')
             sys.stderr.write(f'{http_er}\n\n')
-            sleep(15)
             continue
         except requests.exceptions.ConnectionError as connect_er:
             logger.warning(f'Произошёл сетевой сбой на странице '
@@ -83,20 +90,36 @@ def get_book_ids(start_page, end_page):
             book_href = book.select_one('a').get('href')
             book_id = int(re.search(r'\d+', book_href).group(0))
             book_ids.append(book_id)
-    books = get_books(url, book_ids)
-    create_json_file_with_books(books)
+    books = get_books(url, book_ids, skip_imgs, skip_txt, dest_folder)
+    create_json_file_with_books(books, dest_folder, json_path)
 
 
 def main():
     parser = argparse.ArgumentParser(
         description='Скачивает книги в указанном диапазоне'
     )
-    parser.add_argument('--start_page', default=1, type=int,
+    parser.add_argument('--start_page', type=int,
                         help='Начало диапазона')
     parser.add_argument('--end_page', default=702, type=int,
                         help='Конец диапазона')
+    parser.add_argument('--skip_imgs', action='store_true', default=False,
+                        help='Нужно ли скачивать картинки?')
+    parser.add_argument('--skip_txt', action='store_true', default=False,
+                        help='Нужно ли скачивать текст книг?')
+    parser.add_argument('--json_path', default='', type=str,
+                        help='Путь к *.json файлу с результатами')
+    parser.add_argument('--dest_folder', default='', type=str,
+                        help='''Путь к каталогу с результатами \
+                                парсинга: картинкам, книгам, JSON''')
     args = parser.parse_args()
-    get_book_ids(args.start_page, args.end_page)
+    get_book_ids(
+        args.start_page,
+        args.end_page,
+        args.skip_imgs,
+        args.skip_txt,
+        args.dest_folder,
+        args.json_path,
+    )
 
 
 if __name__ == '__main__':

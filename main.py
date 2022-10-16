@@ -1,5 +1,4 @@
 import os
-from pprint import pprint
 import sys
 import argparse
 import logging
@@ -38,7 +37,6 @@ def parse_book_page(html_book_page):
     img_src = soup.select_one('.bookimage img').get('src')
     book = {'title': title, 'author': author, 'comments': comments,
             'genres': genres, 'img_src': img_src}
-    pprint(book)
     return book
 
 
@@ -48,8 +46,9 @@ def get_file_extension(url):
     return os.path.splitext(filename)[1]
 
 
-def download_image(img_link, book_id, folder='images'):
-    Path(folder).mkdir(parents=True, exist_ok=True)
+def download_image(img_link, book_id, dest_folder='', folder='images'):
+    dest_folder = os.path.join(dest_folder, folder)
+    Path(dest_folder).mkdir(parents=True, exist_ok=True)
     response = requests.get(img_link, timeout=10)
     response.raise_for_status()
     if img_link.endswith('nopic.gif'):
@@ -57,16 +56,17 @@ def download_image(img_link, book_id, folder='images'):
     else:
         extension = get_file_extension(img_link)
         img_name = f'{book_id}{extension}'
-    file_path = os.path.join(folder, img_name)
+    file_path = os.path.join(dest_folder, img_name)
     with open(file_path, 'wb') as file:
         file.write(response.content)
     return file_path
 
 
-def save_text(response, filename, folder='books'):
-    Path(folder).mkdir(parents=True, exist_ok=True)
+def save_text(response, filename, dest_folder='', folder='books'):
+    dest_folder = os.path.join(dest_folder, folder)
+    Path(dest_folder).mkdir(parents=True, exist_ok=True)
     filename = sanitize_filename(filename).strip()
-    file_path = os.path.join(folder, f'{filename}.txt')
+    file_path = os.path.join(dest_folder, f'{filename}.txt')
     with open(file_path, 'w', encoding=ENCODING) as file:
         file.write(response.text)
     return file_path
@@ -113,7 +113,7 @@ def main():
                         format='%(name)s - %(levelname)s '
                                '- %(asctime)s - %(message)s')
     logger.setLevel(logging.INFO)
-    handler = RotatingFileHandler('app.log', maxBytes=3000, backupCount=2)
+    handler = RotatingFileHandler('app.log', maxBytes=15000, backupCount=2)
     logger.addHandler(handler)
     parser = argparse.ArgumentParser(
         description='Скачивает книги в указанном диапазоне'
