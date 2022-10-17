@@ -9,6 +9,7 @@ from logging.handlers import RotatingFileHandler
 
 import requests
 import requests.exceptions
+from tqdm import tqdm
 from bs4 import BeautifulSoup
 from pathvalidate import sanitize_filename
 
@@ -73,7 +74,7 @@ def save_text(response, filename, dest_folder='', folder='books'):
 
 
 def get_books(start_id, end_id):
-    for book_id in range(start_id, end_id):
+    for book_id in tqdm(range(start_id, end_id)):
         url = 'https://tululu.org/'
         params = {'id': book_id}
         try:
