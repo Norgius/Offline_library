@@ -25,8 +25,9 @@ def create_json_file_with_books(books, dest_folder, json_path):
         json.dump(books, file, ensure_ascii=False)
 
 
-def get_books(url, book_ids, skip_imgs, skip_txt, dest_folder):
+def get_books(book_ids, skip_imgs, skip_txt, dest_folder):
     books = []
+    url = 'https://tululu.org/'
     for book_id in tqdm(book_ids):
         params = {'id': book_id}
         try:
@@ -66,8 +67,7 @@ def get_books(url, book_ids, skip_imgs, skip_txt, dest_folder):
     return books
 
 
-def get_book_ids(start_page, end_page, skip_imgs,
-                 skip_txt, dest_folder, json_path):
+def get_book_ids(start_page, end_page):
     url = 'https://tululu.org/'
     book_ids = []
     for page_number in range(start_page, end_page):
@@ -94,8 +94,7 @@ def get_book_ids(start_page, end_page, skip_imgs,
             book_href = book.select_one('a').get('href')
             book_id = int(re.search(r'\d+', book_href).group(0))
             book_ids.append(book_id)
-    books = get_books(url, book_ids, skip_imgs, skip_txt, dest_folder)
-    create_json_file_with_books(books, dest_folder, json_path)
+    return book_ids
 
 
 def main():
@@ -125,14 +124,14 @@ def main():
                         help='''Путь к каталогу с результатами \
                                 парсинга: картинкам, книгам, JSON''')
     args = parser.parse_args()
-    get_book_ids(
-        args.start_page,
-        args.end_page,
+    book_ids = get_book_ids(args.start_page, args.end_page)
+    books = get_books(
+        book_ids,
         args.skip_imgs,
         args.skip_txt,
-        args.dest_folder,
-        args.json_path,
+        args.dest_folder
     )
+    create_json_file_with_books(books, args.dest_folder, args.json_path)
 
 
 if __name__ == '__main__':
