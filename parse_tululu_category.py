@@ -18,12 +18,11 @@ logger = logging.getLogger(__file__)
 
 
 def create_json_file_with_books(books, dest_folder, json_path):
-    books_json = json.dumps(books, ensure_ascii=False)
     if json_path:
         dest_folder = json_path
     file_path = os.path.join(dest_folder, 'books.json')
     with open(file_path, 'w') as file:
-        file.write(books_json)
+        json.dump(books, file, ensure_ascii=False)
 
 
 def get_books(url, book_ids, skip_imgs, skip_txt, dest_folder):
@@ -77,6 +76,7 @@ def get_book_ids(start_page, end_page, skip_imgs,
         try:
             response = requests.get(book_category_url)
             response.raise_for_status()
+            check_for_redirect(response)
         except requests.exceptions.HTTPError as http_er:
             logger.warning(f'Невозможно загрузить страницу '
                            f'page_number = {page_number}\n{http_er}\n')
