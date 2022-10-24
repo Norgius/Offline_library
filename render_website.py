@@ -1,6 +1,7 @@
 import json
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 
+from more_itertools import chunked
 from livereload import Server
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
@@ -13,6 +14,7 @@ def rebuild():
     template = env.get_template('template.html')
     with open('books.json', 'r') as file:
         books = json.load(file)
+        books = list(chunked(books, len(books) // 2))
     rendered_page = template.render(books=books)
     with open('index.html', 'w', encoding="utf8") as file:
         file.write(rendered_page)
