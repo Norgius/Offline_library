@@ -88,7 +88,7 @@ def get_books(start_id, end_id):
             book = parse_book_page(html_book_page)
             book_file_path = save_text(
                 response,
-                f'{book_id}. {book.get("title")}'
+                str(book_id)
             )
             img_link = urljoin(html_book_page.url, book.get('img_src'))
             img_file_path = download_image(img_link, book_id)
