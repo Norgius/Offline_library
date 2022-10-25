@@ -11,40 +11,65 @@
     <title>Hello, world!</title>
   </head>
   <body>
-    <h1>Hello, world!</h1>
+
     <div class="container">
+      <nav aria-label="Page navigation example">
+        <ul class="pagination">
+          {% if current_page!=1 %}
+            <li class="page-item"><a class="page-link" href="index{{ current_page - 1 }}.html">Назад</a></li>
+          {% else %}
+          <li class="page-item disabled"><a class="page-link" href="index{{ current_page }}.html">Назад</a></li>
+          {% endif %}
+          {% for number in range(1, number_pages + 1) %}
+            {% if number!=current_page %}
+              <li class="page-item">
+                <a class="page-link" href="index{{ number }}.html">{{ number }}</a>
+              </li>
+            {% else %} 
+              <li class="page-item active" aria-current="page">
+                <a class="page-link" href="index{{ number }}.html">{{ number }}</a>
+              </li>
+            {% endif %}
+          {% endfor %}
+          {% if current_page!=number_pages %}
+            <li class="page-item"><a class="page-link" href="index{{ current_page + 1 }}.html">Впёред</a></li>
+          {% else %}
+            <li class="page-item disabled"><a class="page-link" href="index{{ current_page }}.html">Впёред</a></li>
+          {% endif %}
+        </ul>
+      </nav>
       <div class="row">
         {% for book in books[0] %}
           <div class="card mb-3" style="width: 50%">
-              <div class="row no-gutters">
-                <div class="col-md-4">
-                  <img src="{{ book.img_src }}" class="card-img" alt="Обложка книги '{{ book.title }}'">
-                </div>
-                <div class="col-md-8">
-                  <div class="card-body">
-                    <h5 class="card-title">{{ book.title }}</h5>
-                    <p class="card-text">{{ book.author }}</p>
-                    <a href="{{ book.book_path }}" target="_blank"> Читать</a>
-                  </div>
+            <div class="row no-gutters">
+              <div class="col-md-4">
+                <img src="{{ book.img_src|urlencode }}" class="card-img" alt="Обложка книги '{{ book.title }}'">
+              </div>
+              <div class="col-md-8">
+                <div class="card-body">
+                  <h5 class="card-title">{{ book.title }}</h5>
+                  <p class="card-text">{{ book.author }}</p>
+                  <a href="{{ book.book_path|urlencode }}" target="_blank"> Читать</a>
                 </div>
               </div>
+            </div>
           </div>
         {% endfor %}
         <div class="w-100"></div>
         {% for book in books[1] %}
           <div class="card mb-3" style="width: 50%">
-              <div class="row no-gutters">
-                <div class="col-md-4">
-                  <img src="{{ book.img_src }}" class="card-img" alt="Обложка книги '{{ book.title }}'">
-                </div>
-                <div class="col-md-8">
-                  <div class="card-body">
-                    <h5 class="card-title">{{ book.title }}</h5>
-                    <p class="card-text">{{ book.author }}</p>
-                    <a href="{{ book.book_path }}" target="_blank">Читать</a>
-                  </div>
+            <div class="row no-gutters">
+              <div class="col-md-4">
+                <img src="{{ book.img_src|urlencode }}" class="card-img" alt="Обложка книги '{{ book.title }}'">
+              </div>
+              <div class="col-md-8">
+                <div class="card-body">
+                  <h5 class="card-title">{{ book.title }}</h5>
+                  <p class="card-text">{{ book.author }}</p>
+                  <a href="{{ book.book_path|urlencode }}" target="_blank">Читать</a>
                 </div>
               </div>
+            </div>
           </div>
         {% endfor %}
       </div>

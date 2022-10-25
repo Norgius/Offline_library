@@ -19,11 +19,12 @@ def rebuild():
     Path(html_pages_folder).mkdir(parents=True, exist_ok=True)
     with open('books.json', 'r') as file:
         books = json.load(file)
-
     book_pages = list(chunked(books, 20))
+    number_pages = len(book_pages)
+
     for number, book_page in enumerate(book_pages, 1):
         books = list(chunked(book_page, len(book_page) // 2))
-        rendered_page = template.render(books=book_page)
+        rendered_page = template.render(books=books, number_pages=number_pages, current_page=number)
         filepath = os.path.join(html_pages_folder, f'index{number}.html')
         with open(filepath, 'w', encoding="utf8") as file:
             file.write(rendered_page)
@@ -33,4 +34,4 @@ def rebuild():
 rebuild()
 server = Server()
 server.watch('template.html', rebuild)
-server.serve(root='.', host='127.0.0.1', port=5500)
+server.serve(root='pages/', host='127.0.0.1', port=5500)
