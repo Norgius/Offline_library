@@ -42,7 +42,7 @@ def get_books(book_ids, skip_imgs, skip_txt, dest_folder):
             if not skip_txt:
                 book_file_path = save_text(
                     response,
-                    str(book_id),
+                    f'{book_id}. {book.get("title")}',
                     dest_folder,
                 )
                 book['book_path'] = book_file_path
