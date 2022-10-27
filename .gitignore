@@ -9,9 +9,7 @@ app.log*
 
 # Distribution / packaging
 .Python
-books/
 books.json
-images/
 build/
 develop-eggs/
 dist/
