@@ -1,6 +1,7 @@
 import os
 import json
 from pathlib import Path
+from functools import partial
 
 from livereload import Server
 from more_itertools import chunked
@@ -28,17 +29,6 @@ def create_offline_website(env, html_pages_folder, books_number_per_page):
             file.write(rendered_page)
 
 
-def rebuild():
-    html_pages_folder = 'pages'
-    books_number_per_page = 20
-    env = Environment(
-        loader=FileSystemLoader('.'),
-        autoescape=select_autoescape(['html', 'xml'])
-    )
-    create_offline_website(env, html_pages_folder, books_number_per_page)
-    print('Site rebuilt')
-
-
 def main():
     html_pages_folder = 'pages'
     books_number_per_page = 20
@@ -50,7 +40,15 @@ def main():
     create_offline_website(env, html_pages_folder, books_number_per_page)
     print('Сайт библиотеки создан')
     server = Server()
-    server.watch('template.html', rebuild)
+    server.watch(
+        'template.html',
+        partial(
+            create_offline_website,
+            env,
+            html_pages_folder,
+            books_number_per_page
+        )
+    )
     server.serve(root='.', host='127.0.0.1', port=5500)
 
 
