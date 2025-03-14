@@ -125,7 +125,7 @@ def main():
     parser.add_argument('start_id', type=int,
                         help='Начало диапазона')
     parser.add_argument('end_id', type=int,
-                        help='Конец диапазона')
+                        help='Конец диапазона ')
     args = parser.parse_args()
     get_books(args.start_id, args.end_id)
 
